@@ -53,3 +53,6 @@ desktop.ini
 .setup-complete
 reports/*.db-wal
 reports/*.db-shm
+
+# Windows shortcuts contain absolute machine-specific paths
+*.lnk
