@@ -48,30 +48,55 @@ def _connect():
 def init() -> None:
     """Create the table and index if this is the first run."""
     with _connect() as connection:
+        # Write-ahead logging lets reads and writes overlap, and NORMAL sync is
+        # the right trade for a local prediction log: much faster commits, with
+        # durability that still survives an application crash.
+        connection.execute("PRAGMA journal_mode=WAL")
+        connection.execute("PRAGMA synchronous=NORMAL")
         connection.executescript(_SCHEMA)
+
+
+_INSERT = """INSERT INTO predictions
+    (created_at, source, customer_ref, probability, risk_band,
+     will_churn, monthly, tenure, contract, payload)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"""
+
+
+def _row(customer: dict, result: dict, source: str, now: str) -> tuple:
+    return (
+        now,
+        source,
+        str(customer.get("customerID") or "")[:64] or None,
+        float(result["probability"]),
+        result["risk_band"],
+        int(result["will_churn"]),
+        float(customer.get("MonthlyCharges") or 0),
+        int(float(customer.get("tenure") or 0)),
+        customer.get("Contract"),
+        json.dumps(customer, default=str),
+    )
 
 
 def record(customer: dict, result: dict, source: str = "single") -> None:
     """Append one scored customer to the log."""
+    now = datetime.now(timezone.utc).isoformat(timespec="seconds")
     with _connect() as connection:
-        connection.execute(
-            """INSERT INTO predictions
-               (created_at, source, customer_ref, probability, risk_band,
-                will_churn, monthly, tenure, contract, payload)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-            (
-                datetime.now(timezone.utc).isoformat(timespec="seconds"),
-                source,
-                str(customer.get("customerID") or "")[:64] or None,
-                float(result["probability"]),
-                result["risk_band"],
-                int(result["will_churn"]),
-                float(customer.get("MonthlyCharges") or 0),
-                int(float(customer.get("tenure") or 0)),
-                customer.get("Contract"),
-                json.dumps(customer, default=str),
-            ),
-        )
+        connection.execute(_INSERT, _row(customer, result, source, now))
+
+
+def record_many(pairs, source: str = "batch") -> int:
+    """Append many scored customers in a single transaction.
+
+    Scoring a 500-row CSV one INSERT at a time would open 500 connections and
+    commit 500 times; this opens one and commits once.
+    """
+    now = datetime.now(timezone.utc).isoformat(timespec="seconds")
+    rows = [_row(customer, result, source, now) for customer, result in pairs]
+    if not rows:
+        return 0
+    with _connect() as connection:
+        connection.executemany(_INSERT, rows)
+    return len(rows)
 
 
 def recent(limit: int = 25) -> list[dict]:

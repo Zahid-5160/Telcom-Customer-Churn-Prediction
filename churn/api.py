@@ -9,10 +9,12 @@ from __future__ import annotations
 import io
 import json
 from contextlib import asynccontextmanager
+from pathlib import Path
 from typing import Annotated, Any
 
 import pandas as pd
 from fastapi import Depends, FastAPI, File, HTTPException, Query, UploadFile
+from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field, field_validator
@@ -80,13 +82,22 @@ class BatchRequest(BaseModel):
 # --------------------------------------------------------------------------- #
 # Helpers
 # --------------------------------------------------------------------------- #
-def _read_json(path, what: str) -> dict:
+#: Parsed report files, keyed by path. Re-read only when the file changes on
+#: disk, so repeat dashboard loads never pay to parse the same JSON again.
+_JSON_CACHE: dict[Path, tuple[float, dict]] = {}
+
+
+def _read_json(path: Path, what: str) -> dict:
     if not path.exists():
         raise HTTPException(
             status_code=503,
             detail=f"{what} has not been generated yet. Run `python main.py build` first.",
         )
-    return json.loads(path.read_text(encoding="utf-8"))
+    stamp = path.stat().st_mtime
+    cached = _JSON_CACHE.get(path)
+    if cached is None or cached[0] != stamp:
+        _JSON_CACHE[path] = (stamp, json.loads(path.read_text(encoding="utf-8")))
+    return _JSON_CACHE[path][1]
 
 
 def require_model() -> dict[str, Any]:
@@ -106,6 +117,15 @@ ModelReady = Annotated[dict, Depends(require_model)]
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     storage.init()
+    # Warm the caches at boot rather than making the first visitor wait: loading
+    # the model off disk is the slowest part of a cold first prediction.
+    try:
+        load_artifact()
+    except ModelNotTrained:
+        pass
+    for path, label in ((INSIGHTS_FILE, "Insights"), (METRICS_FILE, "Metrics")):
+        if path.exists():
+            _read_json(path, label)
     yield
 
 
@@ -118,6 +138,10 @@ app = FastAPI(
     ),
     lifespan=lifespan,
 )
+
+# The insights payload is ~48 KB of JSON; compressing it cuts the dashboard's
+# first load to a fraction of that over the wire.
+app.add_middleware(GZipMiddleware, minimum_size=1024)
 
 
 @app.get("/api/health", tags=["meta"])
@@ -234,8 +258,7 @@ def _batch_response(records: list[dict], source: str) -> dict:
         float(r["MonthlyCharges"] or 0) * r["probability"] * 12 for r in rows
     )
 
-    for record, row in zip(records, rows):
-        storage.record(record, row | {"probability": row["probability"]}, source=source)
+    storage.record_many(zip(records, rows), source=source)
 
     rows.sort(key=lambda r: r["probability"], reverse=True)
     return {

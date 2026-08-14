@@ -67,7 +67,18 @@ def load_artifact() -> dict[str, Any]:
         raise ModelNotTrained(
             "No trained model found. Run `python main.py train` to create models/churn_model.joblib."
         )
-    return joblib.load(MODEL_FILE)
+    artifact = joblib.load(MODEL_FILE)
+
+    # Training fits 300 trees at once and rightly uses every core. Serving does
+    # the opposite: a handful of rows through an already-fitted forest. There the
+    # thread hand-off costs more than the work itself, so scoring a single
+    # customer measured about twice as fast single-threaded. Results are
+    # bit-for-bit identical either way.
+    model = artifact["pipeline"].named_steps.get("model")
+    if hasattr(model, "n_jobs"):
+        model.n_jobs = 1
+
+    return artifact
 
 
 def reset_cache() -> None:
@@ -121,15 +132,8 @@ def predict_many(records: list[dict]) -> list[float]:
     return [float(p) for p in _probabilities(artifact["pipeline"], _prepare(records))]
 
 
-def _explain(record: dict, base_probability: float) -> tuple[list[dict], list[dict]]:
-    """Build the driver list and the recommended-action list for one customer.
-
-    Every "what if" variant is stacked into a single frame and scored in one
-    call, so a full explanation costs about the same as one prediction.
-    """
-    artifact = load_artifact()
-    baseline = artifact["baseline"]
-
+def _build_variants(record: dict, baseline: dict) -> tuple[list[dict], list[tuple[str, str, str]]]:
+    """Every "what if" version of this customer we need in order to explain them."""
     variants: list[dict] = []
     labels: list[tuple[str, str, str]] = []  # (kind, field, replacement value)
 
@@ -153,11 +157,16 @@ def _explain(record: dict, base_probability: float) -> tuple[list[dict], list[di
             variants.append({**record, field: option})
             labels.append(("action", field, option))
 
-    if not variants:
-        return [], []
+    return variants, labels
 
-    scores = _probabilities(artifact["pipeline"], _prepare(variants))
 
+def _interpret(
+    record: dict,
+    base_probability: float,
+    labels: list[tuple[str, str, str]],
+    scores,
+) -> tuple[list[dict], list[dict]]:
+    """Turn the scored variants into the driver and action lists."""
     drivers: list[dict] = []
     actions: dict[str, dict] = {}
 
@@ -194,12 +203,18 @@ def _explain(record: dict, base_probability: float) -> tuple[list[dict], list[di
 
 
 def predict(record: dict, explain: bool = True) -> dict:
-    """Score one customer and describe the result in business language."""
+    """Score one customer and describe the result in business language.
+
+    The customer and all their "what if" variants go through the model in a
+    single batch, so a fully explained prediction costs one pass, not two.
+    """
     artifact = load_artifact()
     threshold = artifact["threshold"]
 
-    frame = _prepare([record])
-    probability = float(_probabilities(artifact["pipeline"], frame)[0])
+    variants, labels = _build_variants(record, artifact["baseline"]) if explain else ([], [])
+    frame = _prepare([record, *variants])
+    scores = _probabilities(artifact["pipeline"], frame)
+    probability = float(scores[0])
     band, advice = risk_band(probability)
 
     result = {
@@ -219,7 +234,7 @@ def predict(record: dict, explain: bool = True) -> dict:
     }
 
     if explain:
-        drivers, actions = _explain(record, probability)
+        drivers, actions = _interpret(record, probability, labels, scores[1:])
         result["drivers"] = drivers
         result["actions"] = actions
         result["value_at_risk"] = round(float(record.get("MonthlyCharges", 0)) * 12 * probability, 2)

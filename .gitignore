@@ -51,3 +51,5 @@ desktop.ini
 
 # First-run marker written by the desktop launcher
 .setup-complete
+reports/*.db-wal
+reports/*.db-shm
