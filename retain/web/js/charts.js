@@ -376,7 +376,7 @@ export function lineChart(host, { points, reference = true, xLabel = '', yLabel 
 /* ------------------------------------------------------------------ */
 
 /** Severity rides the fill; the unfilled track is a lighter step of the ramp. */
-export function gauge(host, { value, band }) {
+export function gauge(host, { value, band, caption = 'risk' }) {
   const W = 260, H = 150;
   const svg = svgRoot(host, W, H);
   const cx = W / 2, cy = 128, r = 96, thickness = 16;
@@ -399,7 +399,7 @@ export function gauge(host, { value, band }) {
   }
 
   el('text', { x: cx, y: cy - 30, class: 'gauge-value', 'text-anchor': 'middle' }, svg).textContent = `${(value * 100).toFixed(0)}%`;
-  el('text', { x: cx, y: cy - 8, class: 'gauge-caption', 'text-anchor': 'middle' }, svg).textContent = 'chance of leaving';
+  el('text', { x: cx, y: cy - 8, class: 'gauge-caption', 'text-anchor': 'middle' }, svg).textContent = caption;
   el('text', { x: cx - r, y: cy + 22, class: 'tick', 'text-anchor': 'middle' }, svg).textContent = '0%';
   el('text', { x: cx + r, y: cy + 22, class: 'tick', 'text-anchor': 'middle' }, svg).textContent = '100%';
 }

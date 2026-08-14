@@ -4,18 +4,18 @@ Run with ``python main.py train``.
 
 Evaluation strategy
 -------------------
-The bundled dataset holds 50 customers. Carving out a hold-out test set would
-leave roughly ten rows and three churners, and any score computed on that would
-be noise. So instead of one split we run *repeated stratified cross-validation*:
+The bundled dataset holds 50 employees. Carving out a hold-out test set would
+leave roughly ten rows and four leavers, and any score computed on that would be
+noise. So instead of one split we run *repeated stratified cross-validation*:
 the data is split five ways, each fifth is predicted by a model trained on the
 other four, and the whole exercise repeats ten times with different shuffles.
-Every customer therefore gets scored many times by models that never saw them,
+Every employee therefore gets scored many times by models that never saw them,
 and the reported metrics are the average across all of it - the honest way to
 measure a model on a small sample.
 
 Three candidates compete, the best average ROC-AUC wins, its decision threshold
 is tuned on out-of-fold predictions, and the winner is finally refitted on all
-50 customers before being saved.
+50 employees before being saved.
 """
 
 from __future__ import annotations
@@ -46,7 +46,7 @@ from sklearn.metrics import (
 )
 from sklearn.model_selection import RepeatedStratifiedKFold, cross_val_predict
 
-from churn.config import (
+from retain.config import (
     CV_FOLDS,
     CV_REPEATS,
     METRICS_FILE,
@@ -54,8 +54,8 @@ from churn.config import (
     MODELS_DIR,
     RANDOM_STATE,
 )
-from churn.data import load_clean, split_features_target
-from churn.features import build_pipeline, model_frame
+from retain.data import load_clean, split_features_target
+from retain.features import build_pipeline, model_frame
 
 
 @dataclass(frozen=True)
@@ -124,7 +124,7 @@ def _cv() -> RepeatedStratifiedKFold:
 
 
 def _out_of_fold(pipeline, X: pd.DataFrame, y: pd.Series) -> np.ndarray:
-    """Average out-of-fold churn probability for every customer.
+    """Average out-of-fold attrition probability for every employee.
 
     ``cross_val_predict`` cannot be used directly with repeated splits (each row
     would appear once per repeat), so the repeats are averaged by hand.
@@ -145,8 +145,8 @@ def _out_of_fold(pipeline, X: pd.DataFrame, y: pd.Series) -> np.ndarray:
 def _tune_threshold(y_true: np.ndarray, probabilities: np.ndarray) -> float:
     """Pick the probability cut-off with the best F1 score.
 
-    The textbook 0.50 is a poor fit here: only about a third of these customers
-    churn, and missing a leaver costs far more than one unnecessary phone call.
+    The textbook 0.50 is a poor fit here: leavers are the minority, and failing
+    to spot one costs a great deal more than one unnecessary stay interview.
     """
     precision, recall, thresholds = precision_recall_curve(y_true, probabilities)
     if not len(thresholds):
@@ -251,26 +251,27 @@ def train(verbose: bool = True) -> dict:
     precision, recall, _ = precision_recall_curve(y, oof)
     matrix = confusion_matrix(y, predictions)
 
-    # Final model: refit the winner on every available customer.
+    # Final model: refit the winner on every available employee.
     final_pipeline = build_pipeline(winner.estimator).fit(X, y)
 
     metrics = {
         "generated_at": time.strftime("%Y-%m-%d %H:%M:%S"),
         "training_seconds": round(time.perf_counter() - started, 1),
         "rows_total": int(len(df)),
-        "churn_rate": round(float(y.mean()), 4),
+        "attrition_rate": round(float(y.mean()), 4),
         "evaluation": {
             "strategy": f"{CV_REPEATS}x repeated {CV_FOLDS}-fold stratified cross-validation",
             "explanation": (
-                "With only 50 customers a hold-out test set would contain about ten "
-                "rows, so every customer is instead predicted by models trained "
+                "With only 50 employees a hold-out test set would contain about ten "
+                "rows, so every employee is instead predicted by models trained "
                 f"without them, repeated {CV_REPEATS} times and averaged."
             ),
             "models_fitted": CV_FOLDS * CV_REPEATS,
-            "customers_scored": int(len(X)),
+            "employees_scored": int(len(X)),
             "caveat": (
-                "These scores come from a 50-row teaching sample. They show the "
-                "method working end to end; they are not production benchmarks."
+                "These scores come from a 50-row teaching sample in which leavers "
+                "were deliberately over-represented. They show the method working "
+                "end to end; they are not production benchmarks."
             ),
         },
         "selected_model": best_row["label"],
@@ -282,8 +283,8 @@ def train(verbose: bool = True) -> dict:
         "decision_threshold": threshold,
         "threshold_reason": (
             "Tuned on out-of-fold predictions to maximise F1 instead of being left "
-            "at 0.50, because churners are the minority and a missed leaver costs "
-            "more than a needless retention call."
+            "at 0.50, because leavers are the minority and missing one costs far "
+            "more than a stay interview that turned out to be unnecessary."
         ),
         "scores": _score_block(y, predictions, oof),
         "confusion_matrix": {
@@ -298,7 +299,7 @@ def train(verbose: bool = True) -> dict:
         "feature_importance": _feature_importance(final_pipeline, X, y),
     }
 
-    # The "typical customer" used as the reference point when explaining a single
+    # The "typical employee" used as the reference point when explaining a single
     # prediction: the most common value for text columns, the median for numbers.
     baseline = {
         column: (

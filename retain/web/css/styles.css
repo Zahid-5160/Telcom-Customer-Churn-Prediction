@@ -211,14 +211,15 @@ a { color: var(--sky); }
 .stat .delta { font-size: 0.82rem; color: var(--ink-2); margin-top: 6px; }
 .stat.accent .value { color: var(--sky-bright); }
 
-/* headline insight cards */
+/* headline insights, stacked inside a card */
 .headline {
-  background: var(--surface-1); border: 1px solid var(--border);
-  border-left: 3px solid var(--sky); border-radius: var(--radius-sm);
-  padding: 18px 20px;
+  border-left: 3px solid var(--sky);
+  padding: 4px 0 4px 16px;
+  margin-bottom: 18px;
 }
-.headline h4 { font-size: 0.96rem; color: var(--ink); }
-.headline p { color: var(--ink-2); font-size: 0.89rem; margin-top: 7px; }
+.headline:last-child { margin-bottom: 0; }
+.headline h4 { font-size: 0.94rem; color: var(--ink); }
+.headline p { color: var(--ink-2); font-size: 0.87rem; margin-top: 6px; }
 
 /* ------------------------------------------------------------------ */
 /* charts                                                              */

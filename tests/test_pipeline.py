@@ -1,4 +1,4 @@
-"""Tests for the data, feature and insight layers."""
+"""Tests for the data, feature and analysis layers."""
 
 from __future__ import annotations
 
@@ -6,9 +6,14 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from churn.config import CATEGORICAL_FEATURES, NUMERIC_FEATURES, risk_band
-from churn.data import clean, load_clean, load_raw, split_features_target
-from churn.features import engineer, model_frame
+from retain.config import (
+    CATEGORICAL_FEATURES,
+    EXCLUDED_FROM_MODEL,
+    NUMERIC_FEATURES,
+    risk_band,
+)
+from retain.data import clean, load_clean, load_raw, split_features_target
+from retain.features import engineer, model_frame
 
 
 @pytest.fixture(scope="module")
@@ -21,32 +26,56 @@ def tidy() -> pd.DataFrame:
     return load_clean()
 
 
+@pytest.fixture(scope="module")
+def payload() -> dict:
+    from retain.insights import compute
+
+    return compute()
+
+
+def _employee(**overrides) -> pd.DataFrame:
+    """A single valid employee row, with any field overridden."""
+    base = {
+        "Department": "Sales", "JobRole": "Sales Executive", "JobLevel": "Entry",
+        "BusinessTravel": "Rare", "OverTime": "No", "MaritalStatus": "Single",
+        "StockOptionLevel": "None", "JobSatisfaction": "High",
+        "EnvironmentSatisfaction": "High", "WorkLifeBalance": "High",
+        "JobInvolvement": "High", "PerformanceRating": "Meets expectations",
+        "Age": 30, "MonthlyIncome": 60000, "DistanceFromHome": 5,
+        "PercentSalaryHike": 12, "TrainingTimesLastYear": 2, "NumCompaniesWorked": 1,
+        "TotalWorkingYears": 8, "YearsAtCompany": 4, "YearsInCurrentRole": 3,
+        "YearsSinceLastPromotion": 1,
+    }
+    base.update(overrides)
+    return pd.DataFrame([base])
+
+
 class TestData:
     def test_dataset_loads(self, raw):
-        assert len(raw) == 50, "the bundled sample is 50 customers"
-        assert "Churn" in raw.columns
-
-    def test_total_charges_becomes_numeric(self):
-        messy = pd.DataFrame(
-            {
-                "TotalCharges": [" ", "100.5", "", "20"],
-                "SeniorCitizen": [0, 1, 0, 1],
-                "customerID": list("abcd"),
-                "tenure": [0, 2, 0, 1],
-            }
-        )
-        out = clean(messy)
-        assert out["TotalCharges"].dtype.kind == "f"
-        assert out["TotalCharges"].tolist() == [0.0, 100.5, 0.0, 20.0]
-
-    def test_senior_citizen_becomes_yes_no(self, tidy):
-        assert set(tidy["SeniorCitizen"].unique()) <= {"No", "Yes"}
+        assert len(raw) == 50, "the bundled sample is 50 employees"
+        assert "Attrition" in raw.columns
 
     def test_no_missing_values(self, tidy):
         assert tidy.isnull().sum().sum() == 0
 
-    def test_no_duplicate_customers(self, tidy):
-        assert tidy["customerID"].duplicated().sum() == 0
+    def test_none_survives_as_a_real_category(self, tidy):
+        """Pandas reads bare "None" as missing; these columns mean it literally."""
+        assert (tidy["StockOptionLevel"] == "None").any(), "no-equity employees were lost"
+        assert (tidy["BusinessTravel"] == "None").any(), "non-travelling employees were lost"
+        assert tidy["StockOptionLevel"].isnull().sum() == 0
+
+    def test_no_duplicate_employees(self, tidy):
+        assert tidy["EmployeeID"].duplicated().sum() == 0
+
+    def test_whitespace_is_trimmed(self):
+        messy = pd.DataFrame(
+            {"EmployeeID": [" EMP-1 "], "Department": ["  Sales  "],
+             "Attrition": ["Yes"], "MonthlyIncome": ["  50000 "]}
+        )
+        out = clean(messy)
+        assert out["Department"].iloc[0] == "Sales"
+        assert out["EmployeeID"].iloc[0] == "EMP-1"
+        assert out["MonthlyIncome"].iloc[0] == 50000
 
     def test_target_is_binary(self, tidy):
         _, target = split_features_target(tidy)
@@ -55,8 +84,18 @@ class TestData:
 
     def test_identifier_never_reaches_the_model(self, tidy):
         features, _ = split_features_target(tidy)
-        assert "customerID" not in features.columns
-        assert "Churn" not in features.columns
+        assert "EmployeeID" not in features.columns
+        assert "Attrition" not in features.columns
+
+    def test_protected_characteristics_never_reach_the_model(self, tidy):
+        """Gender must be physically absent from the training frame."""
+        features, _ = split_features_target(tidy)
+        for column in EXCLUDED_FROM_MODEL:
+            assert column not in features.columns, f"{column} must never be a feature"
+        assert "Gender" not in model_frame(features).columns
+
+    def test_gender_is_still_available_for_fairness_reporting(self, tidy):
+        assert "Gender" in tidy.columns
 
     def test_missing_file_raises(self):
         with pytest.raises(FileNotFoundError):
@@ -66,57 +105,38 @@ class TestData:
 class TestFeatures:
     def test_engineered_columns_exist(self, tidy):
         out = engineer(tidy)
-        for column in ("NumServices", "AvgMonthlySpend", "ChargeRatio", "TenureBand"):
+        for column in ("CareerShare", "PromotionGap", "PayPerLevel", "TenureBand"):
             assert column in out.columns
 
-    def test_service_count_is_in_range(self, tidy):
+    def test_career_share_is_a_proportion(self, tidy):
         out = engineer(tidy)
-        assert out["NumServices"].between(0, 9).all()
+        assert out["CareerShare"].between(0, 1).all()
 
-    def test_service_count_ignores_no_service_wording(self):
-        row = pd.DataFrame(
-            [
-                {
-                    "PhoneService": "Yes", "MultipleLines": "No phone service",
-                    "InternetService": "No", "OnlineSecurity": "No internet service",
-                    "OnlineBackup": "No internet service", "DeviceProtection": "No internet service",
-                    "TechSupport": "No internet service", "StreamingTV": "No internet service",
-                    "StreamingMovies": "No internet service",
-                    "tenure": 5, "MonthlyCharges": 20.0, "TotalCharges": 100.0,
-                }
-            ]
-        )
-        # Only the phone line counts; "No internet service" is not a service.
-        assert engineer(row)["NumServices"].iloc[0] == 1
+    def test_career_share_reflects_a_lifer(self):
+        out = engineer(_employee(TotalWorkingYears=10, YearsAtCompany=10))
+        assert out["CareerShare"].iloc[0] == 1.0
 
-    def test_new_customer_avoids_divide_by_zero(self):
-        row = pd.DataFrame(
-            [{
-                "PhoneService": "Yes", "MultipleLines": "No", "InternetService": "DSL",
-                "OnlineSecurity": "No", "OnlineBackup": "No", "DeviceProtection": "No",
-                "TechSupport": "No", "StreamingTV": "No", "StreamingMovies": "No",
-                "tenure": 0, "MonthlyCharges": 45.0, "TotalCharges": 0.0,
-            }]
-        )
-        out = engineer(row)
-        assert np.isfinite(out["AvgMonthlySpend"].iloc[0])
-        assert out["AvgMonthlySpend"].iloc[0] == 45.0
-        assert np.isfinite(out["ChargeRatio"].iloc[0])
+    def test_brand_new_employee_avoids_divide_by_zero(self):
+        out = engineer(_employee(TotalWorkingYears=0, YearsAtCompany=0,
+                                 YearsSinceLastPromotion=0))
+        assert np.isfinite(out["CareerShare"].iloc[0])
+        assert np.isfinite(out["PromotionGap"].iloc[0])
+        assert np.isfinite(out["PayPerLevel"].iloc[0])
+
+    def test_pay_per_level_falls_as_grade_rises(self):
+        entry = engineer(_employee(JobLevel="Entry", MonthlyIncome=100000))
+        exec_ = engineer(_employee(JobLevel="Executive", MonthlyIncome=100000))
+        assert entry["PayPerLevel"].iloc[0] > exec_["PayPerLevel"].iloc[0]
+
+    def test_promotion_gap_grows_when_overlooked(self):
+        recent = engineer(_employee(YearsAtCompany=10, YearsSinceLastPromotion=1))
+        stalled = engineer(_employee(YearsAtCompany=10, YearsSinceLastPromotion=8))
+        assert stalled["PromotionGap"].iloc[0] > recent["PromotionGap"].iloc[0]
 
     def test_tenure_bands_are_ordered_correctly(self):
-        rows = pd.DataFrame(
-            [
-                {
-                    "PhoneService": "Yes", "MultipleLines": "No", "InternetService": "DSL",
-                    "OnlineSecurity": "No", "OnlineBackup": "No", "DeviceProtection": "No",
-                    "TechSupport": "No", "StreamingTV": "No", "StreamingMovies": "No",
-                    "tenure": months, "MonthlyCharges": 45.0, "TotalCharges": 45.0 * months,
-                }
-                for months in (1, 8, 18, 30, 60)
-            ]
-        )
+        rows = pd.concat([_employee(YearsAtCompany=y) for y in (1, 3, 7, 15)])
         assert engineer(rows)["TenureBand"].tolist() == [
-            "0-6 months", "6-12 months", "1-2 years", "2-4 years", "4+ years",
+            "Under 2 years", "2-5 years", "5-10 years", "10+ years",
         ]
 
     def test_model_frame_has_exactly_the_expected_columns(self, tidy):
@@ -145,46 +165,53 @@ class TestRiskBands:
             assert advice and advice[0].isupper()
 
 
-@pytest.fixture(scope="module")
-def payload() -> dict:
-    from churn.insights import compute
-
-    return compute()
-
-
 class TestInsights:
     def test_kpis_are_self_consistent(self, payload):
         kpis = payload["kpis"]
-        assert kpis["churned"] + kpis["retained"] == kpis["customers"]
-        assert kpis["churn_rate"] == pytest.approx(kpis["churned"] / kpis["customers"], abs=1e-4)
-        assert kpis["annual_revenue_at_risk"] == pytest.approx(
-            kpis["monthly_revenue_at_risk"] * 12, abs=0.01
+        assert kpis["left"] + kpis["stayed"] == kpis["employees"]
+        assert kpis["attrition_rate"] == pytest.approx(
+            kpis["left"] / kpis["employees"], abs=1e-4
+        )
+        assert kpis["replacement_cost"] == pytest.approx(
+            kpis["monthly_salary_lost"] * kpis["replacement_cost_months"], rel=1e-3
         )
 
-    def test_every_breakdown_sums_to_the_population(self, payload):
+    def test_every_breakdown_covers_the_whole_workforce(self, payload):
         for name, block in payload["breakdowns"].items():
             total = sum(row["total"] for row in block["data"])
-            assert total == payload["kpis"]["customers"], f"{name} does not cover everyone"
+            assert total == payload["kpis"]["employees"], f"{name} does not cover everyone"
 
     def test_breakdown_rates_are_proportions(self, payload):
         for block in payload["breakdowns"].values():
             for row in block["data"]:
-                assert 0.0 <= row["churn_rate"] <= 1.0
-                assert row["churned"] + row["retained"] == row["total"]
+                assert 0.0 <= row["attrition_rate"] <= 1.0
+                assert row["left"] + row["stayed"] == row["total"]
 
     def test_tenure_histogram_covers_everyone(self, payload):
-        assert sum(b["total"] for b in payload["tenure_histogram"]) == payload["kpis"]["customers"]
+        assert sum(b["total"] for b in payload["tenure_histogram"]) == payload["kpis"]["employees"]
+
+    def test_age_histogram_covers_everyone(self, payload):
+        assert sum(b["total"] for b in payload["age_histogram"]) == payload["kpis"]["employees"]
+
+    def test_gender_is_flagged_monitor_only(self, payload):
+        assert payload["breakdowns"]["Gender"]["monitor_only"] is True
+
+    def test_gender_is_never_offered_as_a_risk_segment(self, payload):
+        """Risk groups drive retention spend, so a protected trait must not appear."""
+        segments = " ".join(s["segment"] for s in payload["risk_segments"])
+        assert "Gender" not in segments
 
     def test_headline_patterns_hold_in_the_sample(self, payload):
         """The story the dashboard tells must be true of the data it ships with."""
-        contract = {r["category"]: r["churn_rate"] for r in payload["breakdowns"]["Contract"]["data"]}
-        assert contract["Month-to-month"] > contract["Two year"]
+        overtime = {r["category"]: r["attrition_rate"]
+                    for r in payload["breakdowns"]["OverTime"]["data"]}
+        assert overtime["Yes"] > overtime["No"]
 
-        tenure = {r["category"]: r["churn_rate"] for r in payload["breakdowns"]["TenureBand"]["data"]}
-        assert tenure["0-6 months"] > tenure["4+ years"]
+        tenure = {r["category"]: r["attrition_rate"]
+                  for r in payload["breakdowns"]["TenureBand"]["data"]}
+        assert tenure["Under 2 years"] > tenure["10+ years"]
 
-        net = {r["category"]: r["churn_rate"] for r in payload["breakdowns"]["InternetService"]["data"]}
-        assert net["Fiber optic"] > net["DSL"]
+        assert payload["kpis"]["avg_salary_left"] < payload["kpis"]["avg_salary_stayed"]
 
     def test_headlines_are_readable_sentences(self, payload):
         assert len(payload["headlines"]) >= 4
@@ -192,11 +219,29 @@ class TestInsights:
             assert headline["title"] and headline["detail"]
             assert headline["detail"].endswith(".")
 
-    def test_roster_holds_every_customer(self, payload):
-        assert len(payload["customers"]) == payload["kpis"]["customers"]
-        assert all("customerID" in c for c in payload["customers"])
+    def test_headlines_quote_rupees_not_dollars(self, payload):
+        text = " ".join(h["detail"] for h in payload["headlines"])
+        assert "₹" in text
+        assert "$" not in text
+
+    def test_roster_holds_every_employee(self, payload):
+        assert len(payload["employees"]) == payload["kpis"]["employees"]
+        assert all("EmployeeID" in e for e in payload["employees"])
 
     def test_roster_is_json_safe(self, payload):
         import json
 
         json.dumps(payload)  # raises TypeError on stray numpy scalars
+
+
+class TestCurrency:
+    @pytest.mark.parametrize(
+        "amount,expected",
+        [(500, "₹500"), (50000, "₹50,000"), (125000, "₹1,25,000"),
+         (8238000, "₹82,38,000"), (12500000, "₹1,25,00,000")],
+    )
+    def test_indian_digit_grouping(self, amount, expected):
+        """Salaries must group as lakh and crore, not in thousands."""
+        from retain.insights import _rupees
+
+        assert _rupees(amount) == expected

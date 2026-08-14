@@ -19,18 +19,19 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field, field_validator
 
-from churn import __version__, storage
-from churn.config import (
+from retain import __version__, storage
+from retain.config import (
     CATEGORICAL_FEATURES,
     FORM_FIELDS,
     INSIGHTS_FILE,
     METRICS_FILE,
     MODEL_FILE,
     RAW_NUMERIC,
+    REPLACEMENT_COST_MONTHS,
     WEB_DIR,
     risk_band,
 )
-from churn.predictor import ModelNotTrained, load_artifact, predict, predict_many
+from retain.predictor import ModelNotTrained, load_artifact, predict, predict_many
 
 MAX_BATCH_ROWS = 500
 
@@ -38,33 +39,41 @@ MAX_BATCH_ROWS = 500
 # --------------------------------------------------------------------------- #
 # Request models
 # --------------------------------------------------------------------------- #
-class Customer(BaseModel):
-    """One customer as the form submits them.
+class Employee(BaseModel):
+    """One employee as the form submits them.
 
-    Allowed values for every text field come straight from ``churn.config``, so
+    Allowed values for every text field come straight from ``retain.config``, so
     the form, the validator and the model can never disagree about the schema.
+
+    Note what is *absent*: gender is never accepted here, because it is never
+    used to predict. See ``EXCLUDED_FROM_MODEL`` in the config for why.
     """
 
-    gender: str = "Female"
-    SeniorCitizen: str = "No"
-    Partner: str = "No"
-    Dependents: str = "No"
-    tenure: int = Field(default=12, ge=0, le=100)
-    PhoneService: str = "Yes"
-    MultipleLines: str = "No"
-    InternetService: str = "Fiber optic"
-    OnlineSecurity: str = "No"
-    OnlineBackup: str = "No"
-    DeviceProtection: str = "No"
-    TechSupport: str = "No"
-    StreamingTV: str = "No"
-    StreamingMovies: str = "No"
-    Contract: str = "Month-to-month"
-    PaperlessBilling: str = "Yes"
-    PaymentMethod: str = "Electronic check"
-    MonthlyCharges: float = Field(default=70.0, ge=0, le=1000)
-    TotalCharges: float = Field(default=840.0, ge=0, le=100000)
-    customerID: str | None = None
+    Department: str = "Research and Development"
+    JobRole: str = "Research Scientist"
+    JobLevel: str = "Entry"
+    BusinessTravel: str = "Rare"
+    OverTime: str = "Yes"
+    MaritalStatus: str = "Single"
+    StockOptionLevel: str = "None"
+    JobSatisfaction: str = "Low"
+    EnvironmentSatisfaction: str = "Medium"
+    WorkLifeBalance: str = "High"
+    JobInvolvement: str = "High"
+    PerformanceRating: str = "Meets expectations"
+
+    Age: int = Field(default=30, ge=18, le=75)
+    MonthlyIncome: float = Field(default=60000, ge=0, le=10_000_000)
+    DistanceFromHome: int = Field(default=8, ge=0, le=200)
+    PercentSalaryHike: int = Field(default=13, ge=0, le=100)
+    TrainingTimesLastYear: int = Field(default=2, ge=0, le=20)
+    NumCompaniesWorked: int = Field(default=1, ge=0, le=20)
+    TotalWorkingYears: int = Field(default=6, ge=0, le=60)
+    YearsAtCompany: int = Field(default=3, ge=0, le=60)
+    YearsInCurrentRole: int = Field(default=2, ge=0, le=60)
+    YearsSinceLastPromotion: int = Field(default=1, ge=0, le=60)
+
+    EmployeeID: str | None = None
 
     @field_validator(*FORM_FIELDS)
     @classmethod
@@ -76,7 +85,7 @@ class Customer(BaseModel):
 
 
 class BatchRequest(BaseModel):
-    customers: list[Customer] = Field(min_length=1, max_length=MAX_BATCH_ROWS)
+    employees: list[Employee] = Field(min_length=1, max_length=MAX_BATCH_ROWS)
 
 
 # --------------------------------------------------------------------------- #
@@ -130,17 +139,17 @@ async def lifespan(_app: FastAPI):
 
 
 app = FastAPI(
-    title="Telco Customer Churn API",
+    title="Retain - Employee Retention Intelligence API",
     version=__version__,
     description=(
-        "Predicts which telecom customers are about to leave, explains why, and "
-        "suggests what to do about it."
+        "Predicts which employees are at risk of leaving, explains why, and "
+        "suggests what would keep them."
     ),
     lifespan=lifespan,
 )
 
-# The insights payload is ~48 KB of JSON; compressing it cuts the dashboard's
-# first load to a fraction of that over the wire.
+# The insights payload is tens of kilobytes of JSON; compressing it cuts the
+# dashboard's first load to a fraction of that over the wire.
 app.add_middleware(GZipMiddleware, minimum_size=1024)
 
 
@@ -178,9 +187,9 @@ def model_card() -> dict:
 
 
 @app.post("/api/predict", tags=["prediction"])
-def predict_one(customer: Customer, artifact: ModelReady) -> dict:
-    """Score a single customer and explain the score."""
-    record = customer.model_dump(exclude_none=True)
+def predict_one(employee: Employee, artifact: ModelReady) -> dict:
+    """Score a single employee and explain the score."""
+    record = employee.model_dump(exclude_none=True)
     result = predict(record)
     storage.record(record, result, source="single")
     return result
@@ -188,8 +197,8 @@ def predict_one(customer: Customer, artifact: ModelReady) -> dict:
 
 @app.post("/api/predict/batch", tags=["prediction"])
 def predict_batch(payload: BatchRequest, artifact: ModelReady) -> dict:
-    """Score many customers at once from JSON."""
-    records = [c.model_dump(exclude_none=True) for c in payload.customers]
+    """Score many employees at once from JSON."""
+    records = [e.model_dump(exclude_none=True) for e in payload.employees]
     return _batch_response(records, source="batch")
 
 
@@ -218,18 +227,12 @@ async def predict_csv(artifact: ModelReady, file: UploadFile = File(...)) -> dic
             status_code=413, detail=f"Please upload at most {MAX_BATCH_ROWS} rows."
         )
 
-    if "SeniorCitizen" in frame.columns and frame["SeniorCitizen"].dtype != object:
-        frame["SeniorCitizen"] = frame["SeniorCitizen"].map({0: "No", 1: "Yes"})
-    frame["TotalCharges"] = pd.to_numeric(
-        frame["TotalCharges"].astype(str).str.strip().replace("", "0"), errors="coerce"
-    ).fillna(0.0)
-
-    keep = [c for c in FORM_FIELDS + RAW_NUMERIC + ["customerID"] if c in frame.columns]
+    keep = [c for c in FORM_FIELDS + RAW_NUMERIC + ["EmployeeID"] if c in frame.columns]
     return _batch_response(frame[keep].to_dict(orient="records"), source="csv")
 
 
 def _batch_response(records: list[dict], source: str) -> dict:
-    """Score a list of customers and summarise the outcome."""
+    """Score a list of employees and summarise the outcome."""
     try:
         probabilities = predict_many(records)
     except (KeyError, ValueError) as exc:
@@ -242,20 +245,23 @@ def _batch_response(records: list[dict], source: str) -> dict:
         rows.append(
             {
                 "row": index + 1,
-                "customerID": record.get("customerID") or f"row-{index + 1}",
-                "tenure": record.get("tenure"),
-                "Contract": record.get("Contract"),
-                "MonthlyCharges": record.get("MonthlyCharges"),
+                "EmployeeID": record.get("EmployeeID") or f"row-{index + 1}",
+                "JobRole": record.get("JobRole"),
+                "Department": record.get("Department"),
+                "YearsAtCompany": record.get("YearsAtCompany"),
+                "MonthlyIncome": record.get("MonthlyIncome"),
                 "probability": round(probability, 4),
                 "percent": round(probability * 100, 1),
                 "risk_band": band,
-                "will_churn": bool(probability >= threshold),
+                "will_leave": bool(probability >= threshold),
             }
         )
 
-    flagged = [r for r in rows if r["will_churn"]]
-    at_risk_value = sum(
-        float(r["MonthlyCharges"] or 0) * r["probability"] * 12 for r in rows
+    flagged = [r for r in rows if r["will_leave"]]
+    # Expected replacement bill: what each person would cost to replace,
+    # weighted by how likely they are to go.
+    cost_at_risk = sum(
+        float(r["MonthlyIncome"] or 0) * REPLACEMENT_COST_MONTHS * r["probability"] for r in rows
     )
 
     storage.record_many(zip(records, rows), source=source)
@@ -265,7 +271,7 @@ def _batch_response(records: list[dict], source: str) -> dict:
         "count": len(rows),
         "flagged": len(flagged),
         "flagged_share": round(len(flagged) / len(rows), 4) if rows else 0.0,
-        "annual_value_at_risk": round(at_risk_value, 2),
+        "cost_at_risk": int(round(cost_at_risk)),
         "threshold": threshold,
         "results": rows,
     }
@@ -273,7 +279,7 @@ def _batch_response(records: list[dict], source: str) -> dict:
 
 @app.get("/api/history", tags=["history"])
 def history(limit: int = Query(default=25, ge=1, le=200)) -> dict:
-    """Recently scored customers and a running summary."""
+    """Recently scored employees and a running summary."""
     return {"summary": storage.summary(), "items": storage.recent(limit)}
 
 

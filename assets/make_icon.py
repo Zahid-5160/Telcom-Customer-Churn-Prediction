@@ -1,7 +1,11 @@
-"""Generate the app icon used by the desktop shortcut.
+"""Generate the Retain app icon used by the desktop shortcut and the browser tab.
 
-Run with ``python assets/make_icon.py``. Draws a small rising bar chart in the
-project's navy and sky blue and writes a multi-resolution Windows .ico.
+Run with ``python assets/make_icon.py``.
+
+The glyph is a scatter plot with a fitted trend line running through it - the
+most universally recognised shorthand for "this is a model fitted to data",
+which is exactly what the application does. Drawn in the project's navy and sky
+blue, and written out as a multi-resolution Windows .ico.
 """
 
 from __future__ import annotations
@@ -14,8 +18,17 @@ NAVY = (12, 24, 48, 255)
 NAVY_EDGE = (30, 54, 96, 255)
 SKY = (56, 189, 248, 255)
 SKY_DEEP = (2, 132, 199, 255)
+SKY_PALE = (125, 211, 252, 255)
 
-OUT = Path(__file__).resolve().parent / "churn-insight.ico"
+OUT = Path(__file__).resolve().parent / "retain.ico"
+
+#: Points sit either side of the trend line, as real data does - the scatter is
+#: the point of the glyph, so they are spread well clear of it. Coordinates are
+#: fractions of the plot area, measured from its bottom-left corner.
+POINTS = [
+    (0.08, 0.26), (0.20, 0.10), (0.26, 0.42), (0.40, 0.28),
+    (0.46, 0.62), (0.60, 0.44), (0.68, 0.78), (0.84, 0.62),
+]
 
 
 def draw(size: int) -> Image.Image:
@@ -24,24 +37,45 @@ def draw(size: int) -> Image.Image:
     image = Image.new("RGBA", (px, px), (0, 0, 0, 0))
     pen = ImageDraw.Draw(image)
 
-    radius = int(px * 0.22)
-    pen.rounded_rectangle([0, 0, px - 1, px - 1], radius=radius, fill=NAVY, outline=NAVY_EDGE,
-                          width=max(1, int(px * 0.015)))
+    pen.rounded_rectangle(
+        [0, 0, px - 1, px - 1],
+        radius=int(px * 0.22),
+        fill=NAVY,
+        outline=NAVY_EDGE,
+        width=max(1, int(px * 0.015)),
+    )
 
-    # Four bars climbing left to right - the project's core idea in one glyph.
-    heights = [0.30, 0.46, 0.62, 0.80]
-    bar_w = px * 0.13
-    gap = px * 0.055
-    total = len(heights) * bar_w + (len(heights) - 1) * gap
-    x = (px - total) / 2
-    base = px * 0.80
-    bar_radius = int(bar_w * 0.28)
+    # Plot area, inset from the rounded corners.
+    left, right = px * 0.20, px * 0.84
+    bottom, top = px * 0.80, px * 0.20
+    span_x, span_y = right - left, bottom - top
 
-    for index, height in enumerate(heights):
-        top = base - px * height * 0.72
-        colour = SKY if index >= len(heights) - 2 else SKY_DEEP
-        pen.rounded_rectangle([x, top, x + bar_w, base], radius=bar_radius, fill=colour)
-        x += bar_w + gap
+    def place(fx: float, fy: float) -> tuple[float, float]:
+        return left + fx * span_x, bottom - fy * span_y
+
+    # Axes: two hairlines, deliberately recessive.
+    axis_w = max(1, int(px * 0.018))
+    pen.line([left, top, left, bottom], fill=SKY_DEEP, width=axis_w)
+    pen.line([left, bottom, right, bottom], fill=SKY_DEEP, width=axis_w)
+
+    # The fitted line, drawn under the points so the points read on top.
+    pen.line(
+        [*place(0.04, 0.12), *place(0.88, 0.78)],
+        fill=SKY_PALE,
+        width=max(2, int(px * 0.035)),
+    )
+
+    # The observations. Each carries a ring in the surface colour so points that
+    # land near the line, or near each other, stay individually readable.
+    radius = px * 0.032
+    ring = px * 0.014
+    for fx, fy in POINTS:
+        cx, cy = place(fx, fy)
+        pen.ellipse(
+            [cx - radius - ring, cy - radius - ring, cx + radius + ring, cy + radius + ring],
+            fill=NAVY,
+        )
+        pen.ellipse([cx - radius, cy - radius, cx + radius, cy + radius], fill=SKY)
 
     return image.resize((size, size), Image.LANCZOS)
 

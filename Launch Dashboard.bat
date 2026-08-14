@@ -1,11 +1,11 @@
 @echo off
 setlocal enabledelayedexpansion
-title Churn Insight - Telecom Retention Dashboard
+title Retain - Employee Retention Dashboard
 cd /d "%~dp0"
 
 echo.
 echo   ===========================================================
-echo     CHURN INSIGHT - Telecom Customer Retention Dashboard
+echo     RETAIN - Employee Retention Intelligence
 echo   ===========================================================
 echo.
 

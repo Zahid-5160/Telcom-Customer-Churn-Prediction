@@ -1,0 +1,51 @@
+EmployeeID,Age,Gender,MaritalStatus,Department,JobRole,JobLevel,BusinessTravel,OverTime,DistanceFromHome,MonthlyIncome,PercentSalaryHike,StockOptionLevel,JobSatisfaction,EnvironmentSatisfaction,WorkLifeBalance,JobInvolvement,PerformanceRating,TrainingTimesLastYear,NumCompaniesWorked,TotalWorkingYears,YearsAtCompany,YearsInCurrentRole,YearsSinceLastPromotion,Attrition
+EMP-1405,27,Female,Single,Research and Development,Research Scientist,Entry,Rare,Yes,17,47900,13,None,High,Very High,High,High,Meets expectations,2,1,8,8,2,7,Yes
+EMP-0485,33,Female,Single,Sales,Sales Representative,Entry,Rare,Yes,5,57000,13,None,High,Very High,High,High,Meets expectations,2,1,1,1,0,0,Yes
+EMP-0171,43,Female,Single,Research and Development,Research Scientist,Entry,Frequent,No,28,94800,12,None,High,Medium,High,Very High,Meets expectations,2,4,18,3,2,1,No
+EMP-1683,44,Female,Divorced,Human Resources,Human Resources,Entry,Rare,Yes,1,63900,18,Premium,Very High,High,High,High,Meets expectations,2,4,8,2,2,2,No
+EMP-1970,33,Male,Divorced,Research and Development,Healthcare Representative,Junior,Frequent,No,7,119400,20,Premium,High,Very High,High,High,Exceeds expectations,2,1,9,9,7,2,No
+EMP-0771,35,Female,Divorced,Research and Development,Healthcare Representative,Junior,None,No,2,101900,11,Basic,Low,Very High,Very High,High,Meets expectations,2,2,16,1,0,0,No
+EMP-1219,24,Female,Married,Research and Development,Laboratory Technician,Entry,Rare,No,17,44200,13,Basic,Medium,Very High,Low,High,Meets expectations,3,1,1,1,0,0,Yes
+EMP-1193,19,Male,Single,Research and Development,Research Scientist,Entry,Rare,No,9,51000,25,None,Low,High,High,High,Exceeds expectations,4,1,1,1,1,0,No
+EMP-0622,26,Male,Single,Research and Development,Laboratory Technician,Entry,Rare,Yes,24,46800,18,None,Very High,High,Low,Low,Meets expectations,3,1,1,1,0,0,Yes
+EMP-1554,35,Female,Married,Sales,Sales Representative,Entry,Rare,No,28,48600,23,Standard,High,Medium,High,Medium,Exceeds expectations,5,0,6,5,3,4,No
+EMP-1412,35,Male,Single,Research and Development,Manufacturing Director,Mid,Frequent,No,18,187200,11,None,Very High,High,High,High,Meets expectations,2,2,10,2,2,2,No
+EMP-1150,29,Male,Married,Research and Development,Manufacturing Director,Junior,Rare,Yes,8,101100,15,Basic,Very High,Medium,Medium,Medium,Meets expectations,2,1,10,10,7,1,No
+EMP-0468,42,Female,Single,Research and Development,Research Director,Senior,Rare,No,23,319800,14,None,Very High,Low,High,High,Meets expectations,2,2,16,1,0,0,No
+EMP-1865,29,Male,Married,Human Resources,Human Resources,Entry,Rare,No,6,56100,11,None,Medium,Very High,High,Medium,Meets expectations,3,1,1,1,0,0,No
+EMP-0142,25,Male,Single,Sales,Sales Executive,Junior,Rare,Yes,5,114900,11,None,High,High,High,Medium,Meets expectations,1,1,6,6,4,0,Yes
+EMP-1026,39,Female,Married,Research and Development,Manufacturing Director,Senior,Rare,No,1,254800,16,Basic,Very High,Very High,High,Medium,Meets expectations,3,1,21,21,6,11,No
+EMP-0362,32,Male,Single,Research and Development,Laboratory Technician,Junior,Rare,No,2,43500,13,None,Low,Very High,High,Medium,Meets expectations,5,4,9,6,2,0,No
+EMP-0228,30,Female,Married,Sales,Sales Executive,Mid,Rare,No,5,188400,12,Basic,Very High,Medium,High,High,Meets expectations,2,2,12,10,9,7,No
+EMP-1175,28,Female,Married,Research and Development,Laboratory Technician,Entry,Rare,Yes,12,50300,11,None,Very High,High,Medium,High,Meets expectations,4,1,1,1,1,0,Yes
+EMP-1279,21,Female,Single,Research and Development,Laboratory Technician,Entry,Frequent,No,10,52500,20,None,High,Low,Low,Medium,Exceeds expectations,2,1,2,2,2,2,Yes
+EMP-0442,31,Female,Married,Research and Development,Manufacturing Director,Mid,Frequent,No,7,178900,24,Basic,High,High,High,Medium,Exceeds expectations,2,1,10,10,9,8,No
+EMP-1113,50,Male,Single,Sales,Sales Executive,Junior,Frequent,Yes,1,94600,14,None,High,Very High,High,High,Meets expectations,4,3,5,0,0,0,Yes
+EMP-0806,30,Male,Married,Research and Development,Laboratory Technician,Entry,Rare,No,1,76700,21,Standard,High,Very High,High,Low,Exceeds expectations,2,3,7,2,2,0,No
+EMP-1435,36,Male,Single,Research and Development,Laboratory Technician,Junior,Rare,No,4,116200,16,None,Very High,Low,Medium,Medium,Meets expectations,2,1,10,10,4,1,No
+EMP-1650,29,Male,Single,Sales,Sales Executive,Junior,Rare,No,10,117400,11,None,High,High,High,Medium,Meets expectations,2,9,8,5,2,1,No
+EMP-1707,24,Male,Married,Research and Development,Research Scientist,Entry,Rare,No,9,88000,16,Basic,High,High,High,Very High,Meets expectations,1,1,5,5,3,0,No
+EMP-1127,39,Male,Divorced,Research and Development,Healthcare Representative,Senior,Frequent,No,2,243400,11,Premium,Very High,Low,High,High,Meets expectations,4,7,21,18,7,11,Yes
+EMP-0325,33,Male,Married,Research and Development,Laboratory Technician,Entry,Rare,Yes,14,48700,13,Basic,Very High,High,Low,High,Meets expectations,2,5,8,5,4,0,Yes
+EMP-0390,26,Male,Married,Research and Development,Healthcare Representative,Junior,Frequent,Yes,11,94800,13,Basic,Low,Low,High,High,Meets expectations,3,1,5,5,3,3,No
+EMP-1486,28,Male,Married,Sales,Sales Representative,Entry,Frequent,No,1,58200,15,Basic,High,Low,Very High,High,Meets expectations,3,3,5,3,2,1,Yes
+EMP-1583,38,Female,Single,Sales,Sales Executive,Junior,Rare,No,16,84000,12,None,Medium,Medium,Very High,High,Meets expectations,5,2,8,3,2,1,No
+EMP-1478,34,Male,Single,Sales,Sales Executive,Junior,Rare,No,3,95200,18,None,Low,Very High,High,Low,Meets expectations,2,3,15,13,9,3,No
+EMP-0394,26,Male,Divorced,Research and Development,Laboratory Technician,Entry,Rare,Yes,16,47500,13,Basic,Medium,Low,High,High,Meets expectations,2,2,5,3,2,0,Yes
+EMP-1714,24,Male,Married,Human Resources,Human Resources,Entry,Rare,No,22,31100,11,Basic,High,Very High,High,Low,Meets expectations,2,1,1,1,0,0,Yes
+EMP-1188,43,Female,Single,Sales,Sales Executive,Junior,Rare,No,9,106900,13,None,High,Low,Medium,Low,Meets expectations,2,8,7,4,3,1,Yes
+EMP-1282,51,Male,Divorced,Sales,Manager,Executive,Frequent,Yes,9,396900,24,Basic,Medium,Very High,Medium,High,Exceeds expectations,5,4,31,29,10,11,No
+EMP-1195,45,Female,Married,Research and Development,Research Scientist,Entry,Rare,Yes,7,89500,19,Basic,High,Low,Medium,High,Meets expectations,2,4,7,3,2,0,No
+EMP-1256,49,Male,Married,Research and Development,Manager,Executive,Rare,No,4,374200,13,Basic,High,Low,Very High,Medium,Meets expectations,2,2,23,1,0,0,No
+EMP-0846,28,Female,Married,Sales,Sales Executive,Junior,Rare,Yes,2,95600,20,None,Medium,Medium,High,High,Exceeds expectations,2,1,8,8,7,7,No
+EMP-1844,29,Male,Divorced,Human Resources,Human Resources,Entry,Rare,Yes,13,46700,15,Premium,Low,Low,High,Medium,Meets expectations,3,4,4,2,2,2,Yes
+EMP-1586,29,Male,Single,Research and Development,Laboratory Technician,Entry,Rare,Yes,3,94500,18,None,Low,Medium,High,High,Meets expectations,3,1,10,10,9,1,No
+EMP-0147,34,Male,Single,Research and Development,Laboratory Technician,Junior,Frequent,Yes,7,121500,24,None,High,Low,High,Low,Exceeds expectations,3,1,9,9,7,0,Yes
+EMP-0026,24,Female,Divorced,Research and Development,Manufacturing Director,Junior,None,No,11,80200,18,Basic,High,Low,Medium,Very High,Meets expectations,5,0,5,4,2,1,No
+EMP-0606,45,Male,Married,Sales,Sales Executive,Junior,Rare,No,2,96100,19,Basic,Medium,Very High,Very High,High,Meets expectations,3,0,9,8,7,3,No
+EMP-0655,27,Female,Divorced,Research and Development,Research Scientist,Entry,Rare,No,6,43700,12,Standard,High,Low,Medium,Medium,Meets expectations,5,0,6,5,3,0,No
+EMP-0144,22,Female,Single,Research and Development,Laboratory Technician,Entry,Rare,No,15,57400,15,None,Very High,Medium,High,High,Meets expectations,5,1,1,0,0,0,No
+EMP-0510,26,Male,Single,Research and Development,Research Scientist,Entry,Frequent,No,3,62000,22,None,Low,High,High,High,Exceeds expectations,2,0,7,6,4,0,Yes
+EMP-1172,35,Male,Married,Research and Development,Laboratory Technician,Entry,Rare,No,1,45200,12,Basic,High,Very High,High,Medium,Meets expectations,2,6,10,8,0,1,No
+EMP-0433,52,Male,Married,Research and Development,Research Scientist,Junior,Rare,No,8,98800,15,None,Medium,High,Medium,Medium,Meets expectations,3,2,11,8,2,7,Yes
+EMP-1790,36,Male,Married,Research and Development,Healthcare Representative,Mid,Rare,Yes,10,166400,13,Basic,Low,Very High,High,High,Meets expectations,1,7,15,12,8,5,No
