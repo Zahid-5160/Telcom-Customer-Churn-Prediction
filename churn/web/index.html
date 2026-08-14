@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Churn Insight - Telecom Customer Retention</title>
+<meta name="description" content="Predict which telecom customers are about to leave, understand why, and act on it.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%230284c7'/><path d='M8 21l5-6 4 4 7-9' stroke='%237dd3fc' stroke-width='2.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>">
+<link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-inner">
+    <div class="brand">
+      <div class="brand-mark">CI</div>
+      <div>Churn Insight<small>Telecom retention intelligence</small></div>
+    </div>
+    <div class="nav-links">
+      <a href="#dashboard" class="is-active">Dashboard</a>
+      <a href="#predict">Predict</a>
+      <a href="#batch">Batch scoring</a>
+      <a href="#model">Model card</a>
+      <a href="#history">History</a>
+    </div>
+    <span class="status-dot" id="statusDot">connecting…</span>
+  </div>
+</nav>
+
+<main class="shell">
+
+  <!-- ============================ HERO ============================ -->
+  <header class="hero">
+    <div>
+      <span class="eyebrow">Customer churn analytics</span>
+      <h1>Know who is about to leave — <span>before they do.</span></h1>
+      <p>
+        This dashboard studies a sample of telecom customers, learns the patterns that came
+        before someone cancelled, and turns that into a single number for any customer you
+        describe: how likely they are to walk away, why, and what to offer them instead.
+      </p>
+      <div class="hero-actions">
+        <a class="btn btn-primary" href="#predict">Score a customer</a>
+        <a class="btn btn-ghost" href="#dashboard">Explore the data</a>
+        <a class="btn btn-ghost" href="/docs" target="_blank" rel="noopener">API docs</a>
+      </div>
+    </div>
+    <div class="hero-figure">
+      <div class="value" id="heroChurn">—</div>
+      <div class="label">of customers in this sample cancelled their service</div>
+      <div class="foot" id="heroFoot">Loading the analysis…</div>
+    </div>
+  </header>
+
+  <!-- ========================== DASHBOARD ========================= -->
+  <section class="section" id="dashboard">
+    <div class="section-head">
+      <span class="eyebrow">Step 1 — Understand</span>
+      <h2>What the data says</h2>
+      <p>
+        Every figure below is calculated from the customer file, not estimated. Hover any
+        chart for the underlying numbers, or open the table beneath it to read them directly.
+      </p>
+    </div>
+
+    <div class="grid grid-4" id="kpiRow"></div>
+
+    <div class="grid grid-2" style="margin-top: 18px;">
+      <div class="card">
+        <div class="card-head"><h3>Who stayed and who left</h3></div>
+        <p class="sub">The whole customer base, split by what actually happened.</p>
+        <div class="chart" id="chartDonut"></div>
+        <div class="legend" id="donutLegend"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-head"><h3>Leaving rate by contract type</h3></div>
+        <p class="sub">Share of customers on each contract who cancelled.</p>
+        <div class="chart" id="chartContract"></div>
+        <button class="btn btn-quiet table-toggle" data-table="tableContract">Show data table</button>
+        <div id="tableContract" hidden></div>
+      </div>
+    </div>
+
+    <div class="grid grid-2" style="margin-top: 18px;">
+      <div class="card">
+        <div class="card-head"><h3>Leaving rate by time as a customer</h3></div>
+        <p class="sub">How the risk of cancelling falls the longer someone stays.</p>
+        <div class="chart" id="chartTenure"></div>
+        <button class="btn btn-quiet table-toggle" data-table="tableTenure">Show data table</button>
+        <div id="tableTenure" hidden></div>
+      </div>
+
+      <div class="card">
+        <div class="card-head"><h3>Leaving rate by payment method</h3></div>
+        <p class="sub">How someone pays turns out to say a lot about whether they stay.</p>
+        <div class="chart" id="chartPayment"></div>
+        <button class="btn btn-quiet table-toggle" data-table="tablePayment">Show data table</button>
+        <div id="tablePayment" hidden></div>
+      </div>
+    </div>
+
+    <div class="grid grid-2" style="margin-top: 18px;">
+      <div class="card">
+        <div class="card-head"><h3>Customers by months with us</h3></div>
+        <p class="sub">Head count in each tenure bracket, split by outcome.</p>
+        <div class="chart" id="chartTenureHist"></div>
+        <div class="legend" id="histLegend"></div>
+        <button class="btn btn-quiet table-toggle" data-table="tableHist">Show data table</button>
+        <div id="tableHist" hidden></div>
+      </div>
+
+      <div class="card">
+        <div class="card-head"><h3>Highest-risk groups</h3></div>
+        <p class="sub">Single characteristics with the highest cancellation rate.</p>
+        <div class="chart" id="chartSegments"></div>
+        <button class="btn btn-quiet table-toggle" data-table="tableSegments">Show data table</button>
+        <div id="tableSegments" hidden></div>
+      </div>
+    </div>
+
+    <div class="section-head" style="margin-top: 40px;">
+      <h2 style="font-size:1.25rem;">What it means in plain English</h2>
+    </div>
+    <div class="grid grid-3" id="headlines"></div>
+  </section>
+
+  <!-- =========================== PREDICT ========================== -->
+  <section class="section" id="predict">
+    <div class="section-head">
+      <span class="eyebrow">Step 2 — Predict</span>
+      <h2>Score a single customer</h2>
+      <p>
+        Describe a customer and the trained model returns their chance of leaving, the
+        details pushing that number up or down, and the changes that would most reduce it.
+      </p>
+    </div>
+
+    <div class="filter-row">
+      <label for="customerPicker">Start from a real customer</label>
+      <select id="customerPicker" style="max-width: 320px;"><option value="">Blank form</option></select>
+      <button class="btn btn-quiet" id="btnRandom">Surprise me</button>
+      <button class="btn btn-quiet" id="btnReset">Reset</button>
+    </div>
+
+    <div class="grid grid-predict" id="predictGrid">
+      <div class="card">
+        <form id="predictForm">
+          <fieldset class="fieldset">
+            <legend>The account</legend>
+            <div class="grid grid-3" id="groupAccount"></div>
+          </fieldset>
+          <fieldset class="fieldset">
+            <legend>Services they use</legend>
+            <div class="grid grid-3" id="groupServices"></div>
+          </fieldset>
+          <fieldset class="fieldset">
+            <legend>Billing</legend>
+            <div class="grid grid-3" id="groupBilling"></div>
+          </fieldset>
+          <button class="btn btn-primary" type="submit" id="btnPredict" style="width:100%">
+            Calculate churn risk
+          </button>
+        </form>
+      </div>
+
+      <div>
+        <div class="card" id="resultCard">
+          <div class="result-empty" id="resultEmpty">
+            Fill in the form and press <strong>Calculate churn risk</strong>.<br>
+            The result appears here.
+          </div>
+          <div id="resultBody" hidden>
+            <div class="chart" id="gauge"></div>
+            <div style="text-align:center; margin-top:6px;">
+              <span class="risk-pill" id="riskPill">—</span>
+            </div>
+            <p class="advice" id="riskAdvice"></p>
+            <div class="callout" id="valueAtRisk" style="margin-top:16px;"></div>
+          </div>
+        </div>
+
+        <div class="card" id="driversCard" style="margin-top:18px;" hidden>
+          <div class="card-head"><h3>Why this score</h3></div>
+          <p class="sub">Each line shows how much that detail moves the risk, compared with a typical customer.</p>
+          <div id="driversList"></div>
+        </div>
+
+        <div class="card" id="actionsCard" style="margin-top:18px;" hidden>
+          <div class="card-head"><h3>What would help most</h3></div>
+          <p class="sub">The single change to this account that lowers the risk the most, in order.</p>
+          <div id="actionsList"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================ BATCH =========================== -->
+  <section class="section" id="batch">
+    <div class="section-head">
+      <span class="eyebrow">Step 3 — Scale</span>
+      <h2>Score a whole list at once</h2>
+      <p>
+        Upload a CSV with the same columns as the customer file and every row is scored and
+        ranked, riskiest first. A copy of the sample file lives in <code>data/raw/</code>.
+      </p>
+    </div>
+
+    <div class="card">
+      <div class="dropzone" id="dropzone" tabindex="0" role="button" aria-label="Upload a CSV file">
+        <strong>Drop a CSV here, or click to choose one</strong>
+        <span>Up to 500 rows · needs the same column names as the sample file</span>
+      </div>
+      <input type="file" id="fileInput" accept=".csv" hidden>
+      <div style="display:flex; gap:10px; margin-top:14px; flex-wrap:wrap;">
+        <button class="btn btn-ghost" id="btnScoreSample">Score the bundled 50 customers</button>
+        <button class="btn btn-quiet" id="btnDownloadResults" hidden>Download results as CSV</button>
+      </div>
+      <div id="batchSummary" style="margin-top:18px;"></div>
+      <div class="scroll-x"><div id="batchResults"></div></div>
+    </div>
+  </section>
+
+  <!-- ============================ MODEL =========================== -->
+  <section class="section" id="model">
+    <div class="section-head">
+      <span class="eyebrow">Step 4 — Trust</span>
+      <h2>How good is the model?</h2>
+      <p>
+        A prediction is only worth as much as its track record. These figures come from
+        testing the model on customers it had never seen during training.
+      </p>
+    </div>
+
+    <div class="callout" id="modelCaveat" style="margin-bottom:18px;"></div>
+
+    <div class="grid grid-4" id="modelScores"></div>
+
+    <div class="grid grid-2" style="margin-top:18px;">
+      <div class="card">
+        <div class="card-head"><h3>Detection trade-off (ROC curve)</h3></div>
+        <p class="sub">
+          Every point is a possible strictness setting. Higher and further left is better;
+          the diagonal is what random guessing would achieve.
+        </p>
+        <div class="chart" id="chartRoc"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-head"><h3>What it got right and wrong</h3></div>
+        <p class="sub">Each customer falls into exactly one of these four boxes.</p>
+        <div class="matrix" id="matrix"></div>
+        <div class="callout" id="matrixNote" style="margin-top:14px;"></div>
+      </div>
+    </div>
+
+    <div class="grid grid-2" style="margin-top:18px;">
+      <div class="card">
+        <div class="card-head"><h3>What the model pays attention to</h3></div>
+        <p class="sub">
+          Measured by scrambling one detail at a time and seeing how much accuracy falls.
+        </p>
+        <div class="chart" id="chartImportance"></div>
+        <button class="btn btn-quiet table-toggle" data-table="tableImportance">Show data table</button>
+        <div id="tableImportance" hidden></div>
+      </div>
+
+      <div class="card">
+        <div class="card-head"><h3>The models we compared</h3></div>
+        <p class="sub">Three approaches were trained and scored the same way. The best one won.</p>
+        <div id="leaderboard"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- =========================== HISTORY ========================== -->
+  <section class="section" id="history">
+    <div class="section-head">
+      <span class="eyebrow">Step 5 — Track</span>
+      <h2>Recent scores</h2>
+      <p>Every prediction is saved to a local database so you can look back over what was scored.</p>
+    </div>
+
+    <div class="grid grid-4" id="historySummary"></div>
+    <div class="card" style="margin-top:18px;">
+      <div class="card-head">
+        <h3>Latest predictions</h3>
+        <button class="btn btn-quiet" id="btnClearHistory">Clear history</button>
+      </div>
+      <div class="scroll-x"><div id="historyTable"></div></div>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <span>Churn Insight — built with Python, scikit-learn and FastAPI.</span>
+    <span id="footerMeta"></span>
+  </footer>
+</main>
+
+<div class="toast" id="toast"></div>
+<script type="module" src="/js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,436 @@
+{
+  "generated_at": "2026-08-14 14:18:42",
+  "training_seconds": 17.5,
+  "rows_total": 50,
+  "churn_rate": 0.32,
+  "evaluation": {
+    "strategy": "10x repeated 5-fold stratified cross-validation",
+    "explanation": "With only 50 customers a hold-out test set would contain about ten rows, so every customer is instead predicted by models trained without them, repeated 10 times and averaged.",
+    "models_fitted": 50,
+    "customers_scored": 50,
+    "caveat": "These scores come from a 50-row teaching sample. They show the method working end to end; they are not production benchmarks."
+  },
+  "selected_model": "Random Forest",
+  "selected_key": "random_forest",
+  "selection_reason": "Best cross-validated ROC-AUC (0.7040) of 3 candidates.",
+  "decision_threshold": 0.444,
+  "threshold_reason": "Tuned on out-of-fold predictions to maximise F1 instead of being left at 0.50, because churners are the minority and a missed leaver costs more than a needless retention call.",
+  "scores": {
+    "accuracy": 0.66,
+    "precision": 0.4783,
+    "recall": 0.6875,
+    "f1": 0.5641,
+    "roc_auc": 0.704,
+    "pr_auc": 0.5134,
+    "brier": 0.2045
+  },
+  "confusion_matrix": {
+    "true_negative": 22,
+    "false_positive": 12,
+    "false_negative": 5,
+    "true_positive": 11
+  },
+  "roc_curve": [
+    {
+      "x": 0.0,
+      "y": 0.0
+    },
+    {
+      "x": 0.0294,
+      "y": 0.0
+    },
+    {
+      "x": 0.0294,
+      "y": 0.125
+    },
+    {
+      "x": 0.0588,
+      "y": 0.125
+    },
+    {
+      "x": 0.0588,
+      "y": 0.25
+    },
+    {
+      "x": 0.1471,
+      "y": 0.25
+    },
+    {
+      "x": 0.1471,
+      "y": 0.375
+    },
+    {
+      "x": 0.1765,
+      "y": 0.375
+    },
+    {
+      "x": 0.1765,
+      "y": 0.4375
+    },
+    {
+      "x": 0.2059,
+      "y": 0.4375
+    },
+    {
+      "x": 0.2059,
+      "y": 0.5
+    },
+    {
+      "x": 0.2353,
+      "y": 0.5
+    },
+    {
+      "x": 0.2353,
+      "y": 0.625
+    },
+    {
+      "x": 0.3235,
+      "y": 0.625
+    },
+    {
+      "x": 0.3235,
+      "y": 0.6875
+    },
+    {
+      "x": 0.3529,
+      "y": 0.6875
+    },
+    {
+      "x": 0.3529,
+      "y": 0.75
+    },
+    {
+      "x": 0.4412,
+      "y": 0.75
+    },
+    {
+      "x": 0.4412,
+      "y": 0.8125
+    },
+    {
+      "x": 0.6471,
+      "y": 0.8125
+    },
+    {
+      "x": 0.6471,
+      "y": 0.9375
+    },
+    {
+      "x": 1.0,
+      "y": 0.9375
+    },
+    {
+      "x": 1.0,
+      "y": 1.0
+    }
+  ],
+  "pr_curve": [
+    {
+      "x": 1.0,
+      "y": 0.32
+    },
+    {
+      "x": 0.9375,
+      "y": 0.3061
+    },
+    {
+      "x": 0.9375,
+      "y": 0.3125
+    },
+    {
+      "x": 0.9375,
+      "y": 0.3191
+    },
+    {
+      "x": 0.9375,
+      "y": 0.3261
+    },
+    {
+      "x": 0.9375,
+      "y": 0.3333
+    },
+    {
+      "x": 0.9375,
+      "y": 0.3409
+    },
+    {
+      "x": 0.9375,
+      "y": 0.3488
+    },
+    {
+      "x": 0.9375,
+      "y": 0.3571
+    },
+    {
+      "x": 0.9375,
+      "y": 0.3659
+    },
+    {
+      "x": 0.9375,
+      "y": 0.375
+    },
+    {
+      "x": 0.9375,
+      "y": 0.3846
+    },
+    {
+      "x": 0.9375,
+      "y": 0.3947
+    },
+    {
+      "x": 0.9375,
+      "y": 0.4054
+    },
+    {
+      "x": 0.875,
+      "y": 0.3889
+    },
+    {
+      "x": 0.8125,
+      "y": 0.3714
+    },
+    {
+      "x": 0.8125,
+      "y": 0.3824
+    },
+    {
+      "x": 0.8125,
+      "y": 0.3939
+    },
+    {
+      "x": 0.8125,
+      "y": 0.4062
+    },
+    {
+      "x": 0.8125,
+      "y": 0.4194
+    },
+    {
+      "x": 0.8125,
+      "y": 0.4333
+    },
+    {
+      "x": 0.8125,
+      "y": 0.4483
+    },
+    {
+      "x": 0.8125,
+      "y": 0.4643
+    },
+    {
+      "x": 0.75,
+      "y": 0.4444
+    },
+    {
+      "x": 0.75,
+      "y": 0.4615
+    },
+    {
+      "x": 0.75,
+      "y": 0.48
+    },
+    {
+      "x": 0.75,
+      "y": 0.5
+    },
+    {
+      "x": 0.6875,
+      "y": 0.4783
+    },
+    {
+      "x": 0.6875,
+      "y": 0.5
+    },
+    {
+      "x": 0.625,
+      "y": 0.4762
+    },
+    {
+      "x": 0.625,
+      "y": 0.5
+    },
+    {
+      "x": 0.625,
+      "y": 0.5263
+    },
+    {
+      "x": 0.625,
+      "y": 0.5556
+    },
+    {
+      "x": 0.5625,
+      "y": 0.5294
+    },
+    {
+      "x": 0.5,
+      "y": 0.5
+    },
+    {
+      "x": 0.5,
+      "y": 0.5333
+    },
+    {
+      "x": 0.4375,
+      "y": 0.5
+    },
+    {
+      "x": 0.4375,
+      "y": 0.5385
+    },
+    {
+      "x": 0.375,
+      "y": 0.5
+    },
+    {
+      "x": 0.375,
+      "y": 0.5455
+    },
+    {
+      "x": 0.3125,
+      "y": 0.5
+    },
+    {
+      "x": 0.25,
+      "y": 0.4444
+    },
+    {
+      "x": 0.25,
+      "y": 0.5
+    },
+    {
+      "x": 0.25,
+      "y": 0.5714
+    },
+    {
+      "x": 0.25,
+      "y": 0.6667
+    },
+    {
+      "x": 0.1875,
+      "y": 0.6
+    },
+    {
+      "x": 0.125,
+      "y": 0.5
+    },
+    {
+      "x": 0.125,
+      "y": 0.6667
+    },
+    {
+      "x": 0.0625,
+      "y": 0.5
+    },
+    {
+      "x": 0.0,
+      "y": 0.0
+    },
+    {
+      "x": 0.0,
+      "y": 1.0
+    }
+  ],
+  "leaderboard": [
+    {
+      "key": "logistic_regression",
+      "label": "Logistic Regression",
+      "rationale": "Transparent linear baseline - every feature gets a readable weight.",
+      "threshold": 0.476,
+      "accuracy": 0.7,
+      "precision": 0.5263,
+      "recall": 0.625,
+      "f1": 0.5714,
+      "roc_auc": 0.6765,
+      "pr_auc": 0.4924,
+      "brier": 0.2277
+    },
+    {
+      "key": "random_forest",
+      "label": "Random Forest",
+      "rationale": "Hundreds of shallow decision trees voting together.",
+      "threshold": 0.444,
+      "accuracy": 0.66,
+      "precision": 0.4783,
+      "recall": 0.6875,
+      "f1": 0.5641,
+      "roc_auc": 0.704,
+      "pr_auc": 0.5134,
+      "brier": 0.2045
+    },
+    {
+      "key": "gradient_boosting",
+      "label": "Gradient Boosting",
+      "rationale": "Trees built in sequence, each correcting the last one's mistakes.",
+      "threshold": 0.259,
+      "accuracy": 0.68,
+      "precision": 0.5,
+      "recall": 0.6875,
+      "f1": 0.5789,
+      "roc_auc": 0.6618,
+      "pr_auc": 0.4341,
+      "brier": 0.2344
+    }
+  ],
+  "feature_importance": [
+    {
+      "feature": "AvgMonthlySpend",
+      "importance": 0.01618,
+      "std": 0.00701
+    },
+    {
+      "feature": "gender",
+      "importance": 0.01091,
+      "std": 0.00649
+    },
+    {
+      "feature": "MultipleLines",
+      "importance": 0.00833,
+      "std": 0.00357
+    },
+    {
+      "feature": "TechSupport",
+      "importance": 0.00741,
+      "std": 0.00835
+    },
+    {
+      "feature": "Partner",
+      "importance": 0.00717,
+      "std": 0.00309
+    },
+    {
+      "feature": "OnlineBackup",
+      "importance": 0.00643,
+      "std": 0.00778
+    },
+    {
+      "feature": "ChargeRatio",
+      "importance": 0.00625,
+      "std": 0.00341
+    },
+    {
+      "feature": "OnlineSecurity",
+      "importance": 0.00576,
+      "std": 0.01202
+    },
+    {
+      "feature": "TotalCharges",
+      "importance": 0.00576,
+      "std": 0.00272
+    },
+    {
+      "feature": "PhoneService",
+      "importance": 0.00533,
+      "std": 0.00153
+    },
+    {
+      "feature": "MonthlyCharges",
+      "importance": 0.00484,
+      "std": 0.00309
+    },
+    {
+      "feature": "StreamingTV",
+      "importance": 0.00355,
+      "std": 0.00296
+    }
+  ]
+}
