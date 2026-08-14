@@ -570,8 +570,7 @@ Retain/
 ├── assets/make_icon.py           ← generates the app icon
 ├── data/raw/                     ← the 50-employee dataset
 ├── models/  reports/             ← trained model, scorecard, computed analysis
-├── tests/                        ← 77 automated tests
-└── docs/                         ← earlier exploratory work, kept for reference
+└── tests/                        ← 77 automated tests
 ```
 
 ---
@@ -675,6 +674,19 @@ Two further caveats:
   the company had already invested in. Read the recommendations as "people in this situation
   tend to stay", not as guaranteed levers. A conversation is always better evidence than a
   model.
+
+---
+
+## A note on the repository name
+
+This repository is still called `Telcom-Customer-Churn-Prediction`. It began life as a
+telecom customer churn notebook and was rebuilt into Retain; the code, data and documentation
+all moved, but the repository name is a GitHub setting rather than a file, so it cannot be
+changed from inside a commit.
+
+To bring it in line: **Settings → General → Repository name → `Retain`** (or
+`employee-retention-intelligence`). GitHub redirects the old URL automatically, so existing
+clones and links keep working.
 
 ---
 
